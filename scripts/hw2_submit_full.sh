@@ -8,6 +8,11 @@ REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 WORKER="${REPO_ROOT}/scripts/hw2_train_job.sh"
 ENV_NAME="${ENV_NAME:-pointcept-torch2.5.0-cu12.4}"
 LOG_DIR="${LOG_DIR:-/public/home/xinwuye/slurm}"
+PARTITION="${PARTITION:-gpu}"
+CPUS_PER_TASK="${CPUS_PER_TASK:-8}"
+MEMORY="${MEMORY:-48G}"
+TIME_LIMIT="${TIME_LIMIT:-08:00:00}"
+GPU_REQUEST="${GPU_REQUEST:-gpu:1}"
 
 if ! command -v sbatch >/dev/null 2>&1; then
   echo "sbatch not found on PATH" >&2
@@ -46,11 +51,11 @@ submit_job() {
   fi
 
   sbatch --parsable \
-    --partition=gpu \
-    --gres=gpu:1 \
-    --cpus-per-task=8 \
-    --mem=48G \
-    --time=08:00:00 \
+    --partition="${PARTITION}" \
+    --gres="${GPU_REQUEST}" \
+    --cpus-per-task="${CPUS_PER_TASK}" \
+    --mem="${MEMORY}" \
+    --time="${TIME_LIMIT}" \
     -J "${name}" \
     -o "${LOG_DIR}/%x-%j.out" \
     --export=ALL,MODE=full,DATASET="${dataset}",CONFIG="${config}",EXP_NAME="${name}",REPO_ROOT="${REPO_ROOT}",ENV_NAME="${ENV_NAME}" \
