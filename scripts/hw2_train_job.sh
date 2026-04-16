@@ -81,6 +81,13 @@ elif [ "${MODE}" != "full" ]; then
   exit 2
 fi
 
+if [ -n "${EXTRA_OPTIONS:-}" ]; then
+  # EXTRA_OPTIONS is intentionally whitespace-split into mmengine --options items.
+  # shellcheck disable=SC2206
+  EXTRA_OPTIONS_ARR=(${EXTRA_OPTIONS})
+  OPTIONS+=("${EXTRA_OPTIONS_ARR[@]}")
+fi
+
 echo "HOSTNAME=$(hostname)"
 echo "MODE=${MODE}"
 echo "DATASET=${DATASET}"
@@ -88,6 +95,7 @@ echo "CONFIG=${CONFIG}"
 echo "EXP_NAME=${EXP_NAME}"
 echo "ENV_NAME=${ENV_NAME}"
 echo "CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-unset}"
+echo "OPTIONS=${OPTIONS[*]}"
 
 python tools/train.py \
   --config-file "configs/${DATASET}/${CONFIG}.py" \
