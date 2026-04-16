@@ -65,6 +65,7 @@ mkdir -p "exp/${DATASET}/${EXP_NAME}"
 
 export PYTHONUNBUFFERED=1
 export OMP_NUM_THREADS="${SLURM_CPUS_PER_TASK:-1}"
+export PYTHONPATH="${REPO_ROOT}${PYTHONPATH:+:${PYTHONPATH}}"
 
 OPTIONS=("save_path=exp/${DATASET}/${EXP_NAME}")
 
