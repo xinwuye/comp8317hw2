@@ -5,4 +5,5 @@ from .default import (
     z_order_decode,
     hilbert_encode,
     hilbert_decode,
+    gahs_encode,
 )

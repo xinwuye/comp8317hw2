@@ -538,6 +538,7 @@ class PointTransformerV3(PointModule):
         drop_path=0.3,
         pre_norm=True,
         shuffle_orders=True,
+        serialization_cfg=None,
         enable_rpe=False,
         enable_flash=True,
         upcast_attention=False,
@@ -555,6 +556,7 @@ class PointTransformerV3(PointModule):
         self.order = [order] if isinstance(order, str) else order
         self.enc_mode = enc_mode
         self.shuffle_orders = shuffle_orders
+        self.serialization_cfg = serialization_cfg
 
         assert self.num_stages == len(stride) + 1
         assert self.num_stages == len(enc_depths)
@@ -698,7 +700,11 @@ class PointTransformerV3(PointModule):
 
     def forward(self, data_dict):
         point = Point(data_dict)
-        point.serialization(order=self.order, shuffle_orders=self.shuffle_orders)
+        point.serialization(
+            order=self.order,
+            shuffle_orders=self.shuffle_orders,
+            serialization_cfg=self.serialization_cfg,
+        )
         point.sparsify()
 
         point = self.embedding(point)

@@ -50,7 +50,9 @@ class Point(Dict):
         elif "offset" not in self.keys() and "batch" in self.keys():
             self["offset"] = batch2offset(self.batch)
 
-    def serialization(self, order="z", depth=None, shuffle_orders=False):
+    def serialization(
+        self, order="z", depth=None, shuffle_orders=False, serialization_cfg=None
+    ):
         """
         Point Cloud Serialization
 
@@ -87,7 +89,15 @@ class Point(Dict):
         #   ...
         #  OrderN ([n])] (k, n)
         code = [
-            encode(self.grid_coord, self.batch, depth, order=order_) for order_ in order
+            encode(
+                self.grid_coord,
+                self.batch,
+                depth,
+                order=order_,
+                serialization_cfg=serialization_cfg,
+                coord=self.coord if "coord" in self.keys() else None,
+            )
+            for order_ in order
         ]
         code = torch.stack(code)
         order = torch.argsort(code)

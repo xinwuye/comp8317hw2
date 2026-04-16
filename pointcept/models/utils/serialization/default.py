@@ -3,11 +3,12 @@ from .z_order import xyz2key as z_order_encode_
 from .z_order import key2xyz as z_order_decode_
 from .hilbert import encode as hilbert_encode_
 from .hilbert import decode as hilbert_decode_
+from .gahs import gahs_encode as gahs_encode_
 
 
 @torch.inference_mode()
-def encode(grid_coord, batch=None, depth=16, order="z"):
-    assert order in {"z", "z-trans", "hilbert", "hilbert-trans"}
+def encode(grid_coord, batch=None, depth=16, order="z", serialization_cfg=None, coord=None):
+    assert order in {"z", "z-trans", "hilbert", "hilbert-trans", "gahs", "gahs-trans"}
     if order == "z":
         code = z_order_encode(grid_coord, depth=depth)
     elif order == "z-trans":
@@ -16,6 +17,15 @@ def encode(grid_coord, batch=None, depth=16, order="z"):
         code = hilbert_encode(grid_coord, depth=depth)
     elif order == "hilbert-trans":
         code = hilbert_encode(grid_coord[:, [1, 0, 2]], depth=depth)
+    elif order in {"gahs", "gahs-trans"}:
+        code = gahs_encode(
+            grid_coord,
+            coord=coord,
+            batch=batch,
+            depth=depth,
+            order=order,
+            serialization_cfg=serialization_cfg,
+        )
     else:
         raise NotImplementedError
     if batch is not None:
@@ -57,3 +67,21 @@ def hilbert_encode(grid_coord: torch.Tensor, depth: int = 16):
 
 def hilbert_decode(code: torch.Tensor, depth: int = 16):
     return hilbert_decode_(code, num_dims=3, num_bits=depth)
+
+
+def gahs_encode(
+    grid_coord: torch.Tensor,
+    coord: torch.Tensor,
+    batch: torch.Tensor = None,
+    depth: int = 16,
+    order: str = "gahs",
+    serialization_cfg=None,
+):
+    return gahs_encode_(
+        grid_coord,
+        coord=coord,
+        batch=batch,
+        depth=depth,
+        order=order,
+        serialization_cfg=serialization_cfg,
+    )

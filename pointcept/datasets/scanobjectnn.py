@@ -11,8 +11,12 @@ import h5py
 import numpy as np
 import torch
 from collections.abc import Sequence
-import open3d as o3d
 import copy
+
+try:
+    import open3d as o3d
+except ImportError:
+    o3d = None
 
 from pointcept.utils.logger import get_root_logger
 
@@ -206,6 +210,7 @@ class ScanObjectNNDataset(DefaultDataset):
         self.split = split
         self.transform = Compose(transform)
         self.cache = cache
+        self._sample_cache = {} if cache else None
         self.ignore_index = ignore_index
         self.loop = (
             loop if not test_mode else 1
@@ -227,6 +232,11 @@ class ScanObjectNNDataset(DefaultDataset):
 
     @staticmethod
     def get_normals(center, coords):
+        if o3d is None:
+            raise ImportError(
+                "open3d is required to compute ScanObjectNN normals. "
+                "Install it in a copied environment or disable normal features."
+            )
         Cs = np.repeat(center.reshape((1, -1)), coords.shape[0], axis=0)
         view_dirs = coords - Cs
         view_dirs = view_dirs / (
@@ -279,22 +289,24 @@ class ScanObjectNNDataset(DefaultDataset):
         Instead of loading from a file path, we get the data from the pre-loaded numpy arrays.
         """
         data_idx = self.data_list[idx % len(self.data_list)]
-        coord = self.points[data_idx].copy()
-        if self.if_color:
-            color = np.zeros_like(coord)
-        if self.if_normal:
-            normal = self.get_normals(np.mean(coord, axis=0), coord)
-        label = self.labels[data_idx]
-        category = np.array([label])
+        if self._sample_cache is not None and data_idx in self._sample_cache:
+            return copy.deepcopy(self._sample_cache[data_idx])
 
+        coord = self.points[data_idx].copy()
         data_dict = {
             "coord": coord,
-            "color": color,
-            "normal": normal,
-            "category": category,
+            "category": np.array([self.labels[data_idx]]),
             "name": self.get_data_name(idx),
         }
+        if self.if_color:
+            color = np.zeros_like(coord)
+            data_dict["color"] = color
+        if self.if_normal:
+            normal = self.get_normals(np.mean(coord, axis=0), coord)
+            data_dict["normal"] = normal
 
+        if self._sample_cache is not None:
+            self._sample_cache[data_idx] = copy.deepcopy(data_dict)
         return data_dict
 
     def get_data_name(self, idx):
