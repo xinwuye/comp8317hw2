@@ -63,7 +63,7 @@ scheduler = dict(
 )
 param_dicts = [dict(keyword="block", lr=0.0001)]
 
-dataset_type = "ScanObjectNNDataset"
+dataset_type = "ScanObjectNNHardestDataset"
 data_root = "data/scanobjectnn_eval"
 class_names = [
     "bag",
