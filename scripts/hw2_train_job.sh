@@ -39,6 +39,8 @@ if [ ! -d "${DATA_PATH}" ]; then
   exit 2
 fi
 
+# `conda activate` sources shell snippets that read unset vars in this env.
+set +u
 if command -v conda >/dev/null 2>&1; then
   eval "$(conda shell.bash hook)"
 elif [ -f "${HOME}/miniconda/etc/profile.d/conda.sh" ]; then
@@ -56,6 +58,7 @@ else
 fi
 
 conda activate "${ENV_NAME}"
+set -u
 
 cd "${REPO_ROOT}"
 mkdir -p "exp/${DATASET}/${EXP_NAME}"
