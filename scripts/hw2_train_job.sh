@@ -41,6 +41,9 @@ fi
 
 if command -v conda >/dev/null 2>&1; then
   eval "$(conda shell.bash hook)"
+elif [ -f "${HOME}/miniconda/etc/profile.d/conda.sh" ]; then
+  # shellcheck disable=SC1091
+  . "${HOME}/miniconda/etc/profile.d/conda.sh"
 elif [ -f "${HOME}/miniconda3/etc/profile.d/conda.sh" ]; then
   # shellcheck disable=SC1091
   . "${HOME}/miniconda3/etc/profile.d/conda.sh"
