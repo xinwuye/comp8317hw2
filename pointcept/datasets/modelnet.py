@@ -11,6 +11,7 @@ Please cite our work if the code is helpful to you.
 import os
 import numpy as np
 import copy
+import pickle
 import pointops
 import torch
 from torch.utils.data import Dataset
@@ -55,6 +56,19 @@ class ModelNetDataset(Dataset):
             self.post_transform = Compose(self.test_cfg.post_transform)
             self.aug_transform = [Compose(aug) for aug in self.test_cfg.aug_transform]
 
+        self.processed_dat_path = self.get_processed_dat_path()
+        self.processed_points = None
+        self.processed_labels = None
+        if self.processed_dat_path is not None:
+            logger = get_root_logger()
+            logger.info(f"Loading processed dat: {self.processed_dat_path}")
+            with open(self.processed_dat_path, "rb") as f:
+                self.processed_points, self.processed_labels = pickle.load(f)
+            if len(self.processed_points) != len(self.processed_labels):
+                raise ValueError(
+                    "Processed ModelNet dat has mismatched point and label counts"
+                )
+
         self.data_list = self.get_data_list()
         logger = get_root_logger()
         logger.info(
@@ -62,6 +76,10 @@ class ModelNetDataset(Dataset):
                 len(self.data_list), self.loop, split
             )
         )
+
+        self.data = {}
+        if self.processed_points is not None:
+            return
 
         # check, prepare record
         record_name = f"modelnet40_{self.split}"
@@ -83,11 +101,34 @@ class ModelNetDataset(Dataset):
             if save_record:
                 torch.save(self.data, record_path)
 
+    def get_processed_dat_path(self):
+        if self.num_point is None:
+            return None
+        dat_name = f"modelnet40_{self.split}_{self.num_point}pts"
+        if self.uniform_sampling:
+            dat_name += "_fps"
+        dat_name += ".dat"
+        dat_path = os.path.join(self.data_root, dat_name)
+        return dat_path if os.path.isfile(dat_path) else None
+
     def get_data(self, idx):
         data_idx = idx % len(self.data_list)
         data_name = self.data_list[data_idx]
         if data_name in self.data.keys():
             return copy.deepcopy(self.data[data_name])
+        elif self.processed_points is not None:
+            point_set = np.asarray(self.processed_points[data_idx], dtype=np.float32)
+            label = int(np.asarray(self.processed_labels[data_idx]).reshape(-1)[0])
+            coord = point_set[:, 0:3]
+            if point_set.shape[1] >= 6:
+                normal = point_set[:, 3:6]
+            else:
+                normal = np.zeros_like(coord)
+            category = np.array([label], dtype=np.int64)
+            if self.if_color:
+                color = np.zeros_like(coord)
+                return dict(coord=coord, color=color, normal=normal, category=category)
+            return dict(coord=coord, normal=normal, category=category)
         else:
             data_shape = "_".join(data_name.split("_")[0:-1])
             data_path = os.path.join(
@@ -113,6 +154,8 @@ class ModelNetDataset(Dataset):
             return dict(coord=coord, normal=normal, category=category)
 
     def get_data_list(self):
+        if self.processed_points is not None:
+            return list(range(len(self.processed_points)))
         assert isinstance(self.split, str)
         split_path = os.path.join(
             self.data_root, "modelnet40_{}.txt".format(self.split)
@@ -122,6 +165,8 @@ class ModelNetDataset(Dataset):
 
     def get_data_name(self, idx):
         data_idx = idx % len(self.data_list)
+        if self.processed_points is not None:
+            return f"{self.split}-{data_idx}"
         return self.data_list[data_idx]
 
     def __getitem__(self, idx):
